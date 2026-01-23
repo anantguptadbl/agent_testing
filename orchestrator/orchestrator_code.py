@@ -6,6 +6,7 @@ from langchain_core.messages import BaseMessage
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi import Body
+import requests
 
 class AgentState(TypedDict):
     messages: list[dict]
@@ -16,10 +17,21 @@ agent1 = RemoteRunnable("http://localhost:8001/agent1/process")
 agent2 = RemoteRunnable("http://localhost:8002/agent2/process")
 agent3 = RemoteRunnable("http://localhost:8003/agent3/process")
 
+def call_api1(state):
+    url = "http://127.0.0.1:8004/api1/getdata1"
+    params = {"input": "hello"}
+    print("[DEBUG] Calling API1 with URL:", url, "and params:", params)
+    print("Value of url and params:", url, params)
+    response = requests.get(url, params=params)
+    state['api1_result'] = response.json()
+    return response
+
 async def call_a1(state):
-    result = await agent1.ainvoke(state)
-    print("[DEBUG] After call_a1, type:", type(result), "value:", result)
-    return result
+    if state['ap1i1_result']['output'] == 'hello':
+        result = await agent1.ainvoke(state)
+        print("[DEBUG] After call_a1, type:", type(result), "value:", result)
+        return result
+    return state
 
 async def call_a2(state):
     result = await agent2.ainvoke(state)
@@ -32,17 +44,26 @@ async def call_a3(state):
     return result
 
 # Build Orchestration Graph
+
 builder = StateGraph(AgentState)
+builder.add_node("api1", call_api1)
 builder.add_node("a1", call_a1)
 builder.add_node("a2", call_a2)
 builder.add_node("a3", call_a3)
 
-builder.add_edge(START, "a1")
+builder.add_edge(START, "api1")
+builder.add_edge("api1", "a1")
 builder.add_edge("a1", "a2")
 builder.add_edge("a2", "a3")
 builder.add_edge("a3", END)
 
-orchestrator_graph = builder.compile()
+def build_orchestrator_graph(builder_object):
+    """
+    Takes a builder object and returns a compiled orchestrator graph instance.
+    """
+    return builder_object.compile()
+
+orchestrator_graph = build_orchestrator_graph(builder)
 
 app = FastAPI(title="Master Orchestrator")
 add_routes(app, orchestrator_graph, path="/orchestrate")
