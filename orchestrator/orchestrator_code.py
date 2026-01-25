@@ -25,29 +25,29 @@ def call_api1(state):
     params = {"input": "hello"}
     print("[DEBUG] Calling API1 with URL:", url, "and params:", params)
     print("Value of url and params:", url, params)
-    print("[DEBUG] Getting AP1 response json:", response.json())
     response = requests.get(url, params=params)
+    print("[DEBUG] Getting AP1 response json:", response.json())
     state["messages"].append(response.json())
     print("[DEBUG] State in AP1:", state)
     return state
 
 
-async def call_a1(state):
+def call_a1(state):
     if state["messages"][-1]["content"] == "hello":
-        result = await agent1.invoke(state)
+        result = agent1.invoke(state)
         print("[DEBUG] After call_a1, type:", type(result), "value:", result)
         return result
     return state
 
 
-async def call_a2(state):
-    result = await agent2.invoke(state)
+def call_a2(state):
+    result = agent2.invoke(state)
     print("[DEBUG] After call_a2, type:", type(result), "value:", result)
     return result
 
 
-async def call_a3(state):
-    result = await agent3.invoke(state)
+def call_a3(state):
+    result = agent3.invoke(state)
     print("[DEBUG] After call_a3, type:", type(result), "value:", result)
     return result
 
