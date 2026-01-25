@@ -34,20 +34,20 @@ def call_api1(state):
 
 async def call_a1(state):
     if state["messages"][-1]["content"] == "hello":
-        result = await agent1.ainvoke(state)
+        result = await agent1.invoke(state)
         print("[DEBUG] After call_a1, type:", type(result), "value:", result)
         return result
     return state
 
 
 async def call_a2(state):
-    result = await agent2.ainvoke(state)
+    result = await agent2.invoke(state)
     print("[DEBUG] After call_a2, type:", type(result), "value:", result)
     return result
 
 
 async def call_a3(state):
-    result = await agent3.ainvoke(state)
+    result = await agent3.invoke(state)
     print("[DEBUG] After call_a3, type:", type(result), "value:", result)
     return result
 
