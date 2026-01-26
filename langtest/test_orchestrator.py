@@ -1,7 +1,7 @@
 import pytest
 from orchestrator.orchestrator_code import builder, build_orchestrator_graph
 from langtest.fixture_class import FixtureLibrary
-
+from unittest.mock import patch
 
 @pytest.fixture
 def scenario(request):
@@ -31,8 +31,11 @@ def test_orchestrator_chain(scenario):
     # If async, use pytest-asyncio and await calls.
     graph = build_orchestrator_graph(builder)
 
+    
+    # with patch("orchestrator.orchestrator_code.agent1.invoke") as mock_invoke:
+    #     mock_invoke.return_value = {"messages": [{"role": "agent1", "content": "mocked response"}]}
     result = (
-        scenario.when_input_state({"messages": [{"role": "user", "content": "hello"}]})
+        scenario
         .mock_api_call(
             "orchestrator.orchestrator_code.requests.get",
             {
@@ -41,15 +44,10 @@ def test_orchestrator_chain(scenario):
             },
             {"content": "hello"},
         )
-        .mock_agent_response(
-            "agent1", {"messages": [{"role": "agent1", "content": "response1"}]}
-        )
-        .mock_agent_response(
-            "agent2", {"messages": [{"role": "agent2", "content": "response2"}]}
-        )
-        .mock_agent_response(
-            "agent3", {"messages": [{"role": "agent3", "content": "response3"}]}
-        )
+        .when_input_state({"messages": [{"role": "user", "content": "hello"}]})
+        .mock_agent_response('agent1', {'messages': [{'role': 'agent1', 'content': 'response1'}]})
+        .mock_agent_response('agent2', {'messages': [{'role': 'agent2', 'content': 'response2'}]})
+        .mock_agent_response('agent3', {'messages': [{'role': 'agent3', 'content': 'response3'}]})
         .invoke_graph(graph)
     )
 

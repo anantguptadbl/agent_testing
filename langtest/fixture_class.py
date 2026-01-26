@@ -2,22 +2,28 @@
 
 import logging
 from unittest.mock import patch, Mock
+from agent_utils.remoterunnable_utils import find_all_remoterunnables
+from langtest.agent_utils.models.agent_info import AgentInfo
 
 logging.basicConfig(level=logging.DEBUG)
 
 class FixtureLibrary:
     def __init__(self):
+        
         self._input_state = None
         self._api_mocks = []
         self._agent_invocations = []
         self._agent_responses = []
         self._patchers = []
+        # Load all agent info dict at initialization
+        self.agent_info_dict = find_all_remoterunnables("orchestrator")
         print(f"Initialized FixtureLibrary with members: "
                       f"_input_state={self._input_state}, "
                       f"_api_mocks={self._api_mocks}, "
                       f"_agent_invocations={self._agent_invocations}, "
                       f"_agent_responses={self._agent_responses}, "
-                      f"_patchers={self._patchers}")
+                      f"_patchers={self._patchers}, "
+                      f"agent_info_dict keys={list(self.agent_info_dict.keys())}")
 
     def when_input_state(self, state):
         print(f"when_input_state called with state={state}")
@@ -52,7 +58,19 @@ class FixtureLibrary:
 
     def mock_agent_response(self, agent_name, response_state):
         print(f"mock_agent_response called with agent_name={agent_name}, response_state={response_state}")
+        # Use agent_info_dict to infer the patch path
+        agent_info: AgentInfo = self.agent_info_dict.get(agent_name)
+        print(f"Retrieved agent_info for {agent_name}: {agent_info}")
+        if agent_info is None:
+            raise ValueError(f"Agent '{agent_name}' not found in agent_info_dict.")
+        # Try to get the module path from agent_info, fallback to default if not present
+        module_path = agent_info.agent_path
+        patch_path = f"{module_path}.invoke"
+        print(f"Determined patch_path for {agent_name}: {patch_path}")
+        patcher = patch(patch_path, return_value=response_state)
+        self._patchers.append(patcher)
         self._agent_responses.append((agent_name, response_state))
+        print(f"_patchers updated: {self._patchers}")
         print(f"_agent_responses updated: {self._agent_responses}")
         return self
 

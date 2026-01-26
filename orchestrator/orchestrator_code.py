@@ -33,6 +33,7 @@ def call_api1(state):
 
 
 def call_a1(state):
+    print("[DEBUG] In call_a1 with state:", state)
     if state["messages"][-1]["content"] == "hello":
         result = agent1.invoke(state)
         print("[DEBUG] After call_a1, type:", type(result), "value:", result)

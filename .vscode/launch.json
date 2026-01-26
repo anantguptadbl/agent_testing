@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Current File (with PYTHONPATH)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "W:/2025/Agents",
+                "PYTHONDONTWRITEBYTECODE": "1"
+            }
+        }
+    ]
+}
