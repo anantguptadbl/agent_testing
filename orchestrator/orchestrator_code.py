@@ -1,4 +1,5 @@
 from typing import Annotated, TypedDict
+import uuid
 from langgraph.graph import StateGraph, START, END
 from langserve import RemoteRunnable, add_routes
 from fastapi import FastAPI
@@ -18,6 +19,8 @@ class AgentState(TypedDict):
 agent1 = RemoteRunnable("http://localhost:8001/agent1/process")
 agent2 = RemoteRunnable("http://localhost:8002/agent2/process")
 agent3 = RemoteRunnable("http://localhost:8003/agent3/process")
+agent4 = RemoteRunnable("http://localhost:8003/agent4/process")
+agent5 = RemoteRunnable("http://localhost:8003/agent5/process")
 
 
 def call_api1(state):
@@ -42,14 +45,32 @@ def call_a1(state):
 
 
 async def call_a2(state):
+    print("[DEBUG] In call_a2 with state:", state)
     result = await agent2.ainvoke(state)
     print("[DEBUG] After call_a2, type:", type(result), "value:", result)
     return result
 
 
 def call_a3(state):
-    result = agent3.batch(state)
+    # Check if 'Processed by agent3' already present
+    already_processed = any(
+        msg.get("content") == "Processed by agent3" for msg in state["messages"]
+    )
+    if not already_processed:
+        result = agent3.batch(state)
+        result["messages"].append({"role": "system", "content": "Processed by agent3", "uuid": uuid.uuid4().hex})
     print("[DEBUG] After call_a3, type:", type(result), "value:", result)
+    return result
+
+def call_a4(state):
+    result = agent4.batch(state)
+    result["messages"].append({"role": "system", "content": "Processed by agent4", "uuid": uuid.uuid4().hex})
+    print("[DEBUG] After call_a4, type:", type(result), "value:", result)
+    return result
+
+def call_a5(state):
+    result = agent5.batch(state)
+    print("[DEBUG] After call_a5, type:", type(result), "value:", result)
     return result
 
 

@@ -34,7 +34,7 @@ async def test_orchestrator_chain(scenario):
 
     # with patch("orchestrator.orchestrator_code.agent1.invoke") as mock_invoke:
     #     mock_invoke.return_value = {"messages": [{"role": "agent1", "content": "mocked response"}]}
-    result = await (
+    scenario_object = (
         scenario
         .mock_api_call(
             "orchestrator.orchestrator_code.requests.get",
@@ -48,11 +48,14 @@ async def test_orchestrator_chain(scenario):
         .mock_agent_response('agent1', {'messages': [{'role': 'agent1', 'content': 'response1'}]})
         .mock_agent_response('agent2', {'messages': [{'role': 'agent2', 'content': 'response2'}]})
         .mock_agent_response('agent3', {'messages': [{'role': 'agent3', 'content': 'response3'}]})
-        .ainvoke_graph(graph)
     )
-
-    assert "messages" in result
-        # Add more assertions as needed
+    await scenario_object.ainvoke_graph(graph)
+    ( scenario_object
+     .expect_agent_invocation('agent1', {'messages': [{'role': 'user', 'content': 'hello'}, {'content': 'hello'}]}, 'invoke',ntimes=1)
+     .expect_agent_invocation('agent2', {'messages': [{'role': 'agent1', 'content': 'response1'}]}, 'ainvoke',ntimes=1)
+     .expect_agent_invocation('agent3', {'messages': [{'role': 'agent2', 'content': 'response2'}]}, 'batch',ntimes=1)
+    )
+    # Add more assertions as needed
 
 # def test_orchestrator_chain(scenario):
 #     # This test assumes orchestrator_graph is synchronous for demonstration.
