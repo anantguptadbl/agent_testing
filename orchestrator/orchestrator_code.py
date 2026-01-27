@@ -41,14 +41,14 @@ def call_a1(state):
     return state
 
 
-def call_a2(state):
-    result = agent2.invoke(state)
+async def call_a2(state):
+    result = await agent2.ainvoke(state)
     print("[DEBUG] After call_a2, type:", type(result), "value:", result)
     return result
 
 
 def call_a3(state):
-    result = agent3.invoke(state)
+    result = agent3.batch(state)
     print("[DEBUG] After call_a3, type:", type(result), "value:", result)
     return result
 

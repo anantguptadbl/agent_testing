@@ -1,13 +1,14 @@
 # FixtureLibrary: Chainable test fixture builder for agent orchestration
 
 import logging
-from unittest.mock import patch, Mock
+from unittest.mock import AsyncMock, patch, Mock
 from agent_utils.remoterunnable_utils import find_all_remoterunnables
 from langtest.agent_utils.models.agent_info import AgentInfo
 
 logging.basicConfig(level=logging.DEBUG)
 
 class FixtureLibrary:
+
     def __init__(self):
         
         self._input_state = None
@@ -60,15 +61,21 @@ class FixtureLibrary:
         print(f"mock_agent_response called with agent_name={agent_name}, response_state={response_state}")
         # Use agent_info_dict to infer the patch path
         agent_info: AgentInfo = self.agent_info_dict.get(agent_name)
-        print(f"Retrieved agent_info for {agent_name}: {agent_info}")
         if agent_info is None:
             raise ValueError(f"Agent '{agent_name}' not found in agent_info_dict.")
-        # Try to get the module path from agent_info, fallback to default if not present
+        print(f"Found agent_info: {agent_info}  for agent_name: {agent_name}")
         module_path = agent_info.agent_path
-        patch_path = f"{module_path}.invoke"
-        print(f"Determined patch_path for {agent_name}: {patch_path}")
-        patcher = patch(patch_path, return_value=response_state)
-        self._patchers.append(patcher)
+        patch_methods = ["invoke", "ainvoke", "batch"]
+        for method in patch_methods:
+            patch_path = f"{module_path}.{method}"
+            if method in ["ainvoke"]:
+                # Patch async methods to return a coroutine resolved to response_state
+                async_mock = AsyncMock()
+                async_mock.return_value = response_state
+                patcher = patch(patch_path, new=async_mock)
+            else:
+                patcher = patch(patch_path, return_value=response_state)
+            self._patchers.append(patcher)
         self._agent_responses.append((agent_name, response_state))
         print(f"_patchers updated: {self._patchers}")
         print(f"_agent_responses updated: {self._agent_responses}")
@@ -101,6 +108,16 @@ class FixtureLibrary:
         with self:
             result = graph.invoke(self._input_state)
         print(f"invoke_graph result: {result}")
+        return result
+    
+    async def ainvoke_graph(self, graph):
+        print(f"ainvoke_graph called with graph={graph}")
+        print(f"Using _input_state: {self._input_state}")
+        print("Type of input_state:", type(self._input_state))
+        print("Type of graph:", type(graph))
+        with self:
+            result = await graph.ainvoke(self._input_state)
+        print(f"ainvoke_graph result: {result}")
         return result
         
     def cleanup(self):

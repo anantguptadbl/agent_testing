@@ -1,3 +1,4 @@
+import inspect
 import pkgutil
 import importlib
 import inspect
@@ -31,3 +32,11 @@ def find_all_remoterunnables(package_name):
         except Exception:
             pass
     return remoterunnables
+
+def find_async_nodes_in_graph(graph):
+    """Returns a list of node names that are async in the given LangGraph graph object."""
+    async_nodes = []
+    for node_name, node_func in getattr(graph, 'nodes', {}).items():
+        if inspect.iscoroutinefunction(node_func):
+            async_nodes.append(node_name)
+    return async_nodes
