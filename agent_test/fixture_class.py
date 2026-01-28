@@ -3,7 +3,7 @@
 import logging
 from unittest.mock import AsyncMock, patch, Mock
 from agent_utils.remoterunnable_utils import find_all_remoterunnables
-from langtest.agent_utils.models.agent_info import AgentInfo
+from agent_test.agent_utils.models.agent_info import AgentInfo
 
 logging.basicConfig(level=logging.DEBUG)
 
