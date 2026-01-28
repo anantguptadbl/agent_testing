@@ -35,67 +35,92 @@ class FixtureLibrary:
 
     def mock_api_call(self, api_path, payload, return_value):
         print(f"mock_api_call called with api_path={api_path}, payload={payload}, return_value={return_value}")
-            # Special handling for requests.get
-        def side_effect(url, params=None, **kwargs):
-            if url == payload.get('url') and params == payload.get('params'):
-                mock_response = Mock()
-                mock_response.json.return_value = return_value
-                return mock_response
-            raise ValueError(f"Unexpected url/params: {url}, {params}")
-        if api_path == "requests.get" or api_path.endswith("requests.get"):
-            patcher = patch(api_path, side_effect=side_effect)
-        else:
-            patcher = patch(api_path, return_value=Mock(return_value=return_value))
-        self._patchers.append((patcher, None, None))  # None for agent_name and method
+        patcher = self._create_api_patcher(api_path, payload, return_value)
+        self._patchers.append((patcher, None, None))
         self._api_mocks.append((api_path, payload, return_value))
         print(f"_patchers updated: {self._patchers}")
         print(f"_api_mocks updated: {self._api_mocks}")
         return self
 
-    def expect_agent_invocation(self, agent_name, state, agent_type='invoke', ntimes=1):
-        print(f"Then_expect_agent_invocation called with agent_name={agent_name}, state={state}")
-        if self.was_agent_method_called(agent_name, agent_type, ntimes, input_args=state) == False:
-            raise AssertionError(f"Expected agent '{agent_name}' to be invoked with state {state}, but it was not.")
+    def _create_api_patcher(self, api_path, payload, return_value):
+        def side_effect(url, params=None, **kwargs):
+            if url == payload.get("url") and params == payload.get("params"):
+                mock_response = Mock()
+                mock_response.json.return_value = return_value
+                return mock_response
+            raise ValueError(f"Unexpected url/params: {url}, {params}")
+
+        if api_path == "requests.get" or api_path.endswith("requests.get"):
+            return patch(api_path, side_effect=side_effect)
+        else:
+            return patch(api_path, return_value=Mock(return_value=return_value))
+
+    def expect_agent_invocation(self, agent_name, state, agent_type="invoke", ntimes=1):
+        print(
+            f"Then_expect_agent_invocation called with agent_name={agent_name}, state={state}"
+        )
+        if (
+            self.was_agent_method_called(
+                agent_name, agent_type, ntimes, input_args=state
+            )
+            == False
+        ):
+            raise AssertionError(
+                f"Expected agent '{agent_name}' to be invoked with state {state}, but it was not."
+            )
         return self
         # self._agent_invocations.append((agent_name, state))
         # print(f"_agent_invocations updated: {self._agent_invocations}")
 
     def mock_agent_response(self, agent_name, response_state):
-        print(f"mock_agent_response called with agent_name={agent_name}, response_state={response_state}")
+        print(
+            f"mock_agent_response called with agent_name={agent_name}, response_state={response_state}"
+        )
         # Use agent_info_dict to infer the patch path
-        agent_info: AgentInfo = self.agent_info_dict.get(agent_name)
-        if agent_info is None:
-            raise ValueError(f"Agent '{agent_name}' not found in agent_info_dict.")
-        print(f"Found agent_info: {agent_info}  for agent_name: {agent_name}")
+        agent_info = self._get_agent_info(agent_name)
         module_path = agent_info.agent_path
-        patch_methods = ["invoke", "ainvoke", "batch"]
-        for method in patch_methods:
-            patch_path = f"{module_path}.{method}"
-            if method in ["ainvoke"]:
-                # Patch async methods to return a coroutine resolved to response_state
-                async_mock = AsyncMock()
-                async_mock.return_value = response_state
-                patcher = patch(patch_path, new=async_mock)
-            else:
-                patcher = patch(patch_path, return_value=response_state)
-            # Store tuple: (patcher, agent_name, method)
+        for method in ["invoke", "ainvoke", "batch"]:
+            patcher = self._create_agent_patcher(module_path, method, response_state)
             self._patchers.append((patcher, agent_name, method))
         self._agent_responses.append((agent_name, response_state))
         print(f"_patchers updated: {self._patchers}")
         print(f"_agent_responses updated: {self._agent_responses}")
         return self
 
+    def _get_agent_info(self, agent_name):
+        agent_info: AgentInfo = self.agent_info_dict.get(agent_name)
+        if agent_info is None:
+            raise ValueError(f"Agent '{agent_name}' not found in agent_info_dict.")
+        print(f"Found agent_info: {agent_info}  for agent_name: {agent_name}")
+        return agent_info
+
+    def _create_agent_patcher(self, module_path, method, response_state):
+        patch_path = f"{module_path}.{method}"
+        if method in ["ainvoke"]:
+            # Patch async methods to return a coroutine resolved to response_state
+            async_mock = AsyncMock()
+            async_mock.return_value = response_state
+            return patch(patch_path, new=async_mock)
+        else:
+            return patch(patch_path, return_value=response_state)
+
     def __enter__(self):
         print("__enter__ called. Starting all patchers.")
-        self._started_patches = [patcher.start() for patcher, _, _ in self._patchers]
+        self._started_patches = self._start_all_patchers()
         print(f"_started_patches: {self._started_patches}")
         return self
 
+    def _start_all_patchers(self):
+        return [patcher.start() for patcher, _, _ in self._patchers]
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         print("__exit__ called. Stopping all patchers.")
+        self._stop_all_patchers
+        print("All patchers stopped.")
+
+    def _stop_all_patchers(self):
         for patcher, _, _ in self._patchers:
             patcher.stop()
-        print("All patchers stopped.")
 
     def run(self, test_func):
         print(f"run called with test_func={test_func}")
@@ -114,7 +139,7 @@ class FixtureLibrary:
         print(f"invoke_graph result: {result}")
         self.results.append(result)
         return self
-    
+
     async def ainvoke_graph(self, graph):
         print(f"ainvoke_graph called with graph={graph}")
         print(f"Using _input_state: {self._input_state}")
@@ -125,11 +150,9 @@ class FixtureLibrary:
         print(f"ainvoke_graph result: {result}")
         self.results.append(result)
         return self
-        
-    def cleanup(self):
-        for patcher, _, _ in self._patchers:
-            patcher.stop()
 
+    def cleanup(self):
+        self._stop_all_patchers()
 
     def _get_patch_index_by_agent(self, agent_name, method=None):
         """
