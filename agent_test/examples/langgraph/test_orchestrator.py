@@ -1,6 +1,7 @@
 import pytest
+from agent_test.agent_utils.models.api_mock_type import APIMockType
 from orchestrator.orchestrator_code import builder, build_orchestrator_graph
-from agent_test.fixture_class import FixtureLibrary
+from agent_test.fixture.fixture_class import FixtureLibrary
 from unittest.mock import patch
 
 
@@ -10,6 +11,8 @@ def scenario(request):
     request.addfinalizer(s.cleanup)
     return s
 
+# Expect Tool Inovation
+# 
 
 # @pytest.fixture
 # def orchestrator_fixture():
@@ -19,12 +22,19 @@ def scenario(request):
 #     fixture = (
 #         FixtureLibrary()
 #         .when_input_state(input_state)
-#         .mock_api_call('orchestrator.main.requests.get', {'input': 'hello'}, {'output': 'hello'})
+#         .mock_api_call('orchestrator.main.requests.post', {'input': 'hello'}, {'output': 'hello'})
 #         .mock_agent_response('agent1', {'messages': [{'role': 'agent1', 'content': 'response1'}]})
 #         .mock_agent_response('agent2', {'messages': [{'role': 'agent2', 'content': 'response2'}]})
 #         .mock_agent_response('agent3', {'messages': [{'role': 'agent3', 'content': 'response3'}]})
+#         .invoke_graph(build_orchestrator_graph(builder))
+#         .expect_agent_invocation(
+#             "agent3",
+#             {"messages": [{"role": "agent2", "content": "response2"}]},
+#             "batch",
+#             ntimes=1,
+#         )
 #     )
-#     return fixture
+    return fixture
 
 
 @pytest.mark.asyncio
@@ -37,12 +47,14 @@ async def test_orchestrator_chain(scenario):
     #     mock_invoke.return_value = {"messages": [{"role": "agent1", "content": "mocked response"}]}
     scenario_object = (
         scenario.mock_api_call(
-            "orchestrator.orchestrator_code.requests.get",
+            api_path="orchestrator.orchestrator_code.httpx.post",
+            payload=
             {
                 "url": "http://127.0.0.1:8004/api1/getdata1",
                 "params": {"input": "hello"},
             },
-            {"content": "hello"},
+            return_value={"content": "hello"},
+            api_type=APIMockType.HTTPX
         )
         .when_input_state({"messages": [{"role": "user", "content": "hello"}]})
         .mock_agent_response(

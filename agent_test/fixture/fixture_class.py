@@ -1,11 +1,13 @@
 # FixtureLibrary: Chainable test fixture builder for agent orchestration
 
-import logging
-from unittest.mock import AsyncMock, patch, Mock
+from agent_test.agent_utils.models.api_mock_type import APIMockType
+from agent_test.agent_utils.models.global_metadata import GlobalMetadata
+from agent_test.common.agent_test_logger import AgentTestLogger
+from unittest.mock import AsyncMock, Mock, patch
 from agent_utils.remoterunnable_utils import find_all_remoterunnables
 from agent_test.agent_utils.models.agent_info import AgentInfo
 
-logging.basicConfig(level=logging.DEBUG)
+logger = AgentTestLogger.get_logger()
 
 class FixtureLibrary:
 
@@ -19,45 +21,33 @@ class FixtureLibrary:
         self.results = []
         # Load all agent info dict at initialization
         self.agent_info_dict = find_all_remoterunnables("orchestrator")
-        print(f"Initialized FixtureLibrary with members: "
-                      f"_input_state={self._input_state}, "
-                      f"_api_mocks={self._api_mocks}, "
-                      f"_agent_invocations={self._agent_invocations}, "
-                      f"_agent_responses={self._agent_responses}, "
-                      f"_patchers={self._patchers}, "
-                      f"agent_info_dict keys={list(self.agent_info_dict.keys())}")
+        logger.debug(f"__init__: Initialized FixtureLibrary with members: "
+                 f"_input_state={self._input_state}, "
+                 f"_api_mocks={self._api_mocks}, "
+                 f"_agent_invocations={self._agent_invocations}, "
+                 f"_agent_responses={self._agent_responses}, "
+                 f"_patchers={self._patchers}, "
+                 f"agent_info_dict keys={list(self.agent_info_dict.keys())}")
 
     def when_input_state(self, state):
-        print(f"when_input_state called with state={state}")
+        logger.debug(f"when_input_state: called with state={state}")
         self._input_state = state
-        print(f"_input_state set to {self._input_state}")
+        logger.debug(f"when_input_state: _input_state set to {self._input_state}")
         return self
 
-    def mock_api_call(self, api_path, payload, return_value):
-        print(f"mock_api_call called with api_path={api_path}, payload={payload}, return_value={return_value}")
-        patcher = self._create_api_patcher(api_path, payload, return_value)
+    def mock_api_call(self, api_path, payload, return_value, api_type:APIMockType=APIMockType.REQUESTS):
+        logger.debug(f"mock_api_call: called with api_path={api_path}, payload={payload}, return_value={return_value}")
+        patcher_class = GlobalMetadata.identify_patcher_type(api_type)
+        patcher = patcher_class().create_patcher(api_path, payload, return_value)
         self._patchers.append((patcher, None, None))
         self._api_mocks.append((api_path, payload, return_value))
-        print(f"_patchers updated: {self._patchers}")
-        print(f"_api_mocks updated: {self._api_mocks}")
+        logger.debug(f"mock_api_call: _patchers updated: {self._patchers}")
+        logger.debug(f"mock_api_call: _api_mocks updated: {self._api_mocks}")
         return self
 
-    def _create_api_patcher(self, api_path, payload, return_value):
-        def side_effect(url, params=None, **kwargs):
-            if url == payload.get("url") and params == payload.get("params"):
-                mock_response = Mock()
-                mock_response.json.return_value = return_value
-                return mock_response
-            raise ValueError(f"Unexpected url/params: {url}, {params}")
-
-        if api_path == "requests.get" or api_path.endswith("requests.get"):
-            return patch(api_path, side_effect=side_effect)
-        else:
-            return patch(api_path, return_value=Mock(return_value=return_value))
-
     def expect_agent_invocation(self, agent_name, state, agent_type="invoke", ntimes=1):
-        print(
-            f"Then_expect_agent_invocation called with agent_name={agent_name}, state={state}"
+        logger.debug(
+            f"expect_agent_invocation: called with agent_name={agent_name}, state={state}"
         )
         if (
             self.was_agent_method_called(
@@ -73,8 +63,8 @@ class FixtureLibrary:
         # print(f"_agent_invocations updated: {self._agent_invocations}")
 
     def mock_agent_response(self, agent_name, response_state):
-        print(
-            f"mock_agent_response called with agent_name={agent_name}, response_state={response_state}"
+        logger.debug(
+            f"mock_agent_response: called with agent_name={agent_name}, response_state={response_state}"
         )
         # Use agent_info_dict to infer the patch path
         agent_info = self._get_agent_info(agent_name)
@@ -83,15 +73,15 @@ class FixtureLibrary:
             patcher = self._create_agent_patcher(module_path, method, response_state)
             self._patchers.append((patcher, agent_name, method))
         self._agent_responses.append((agent_name, response_state))
-        print(f"_patchers updated: {self._patchers}")
-        print(f"_agent_responses updated: {self._agent_responses}")
+        logger.debug(f"mock_agent_response: _patchers updated: {self._patchers}")
+        logger.debug(f"mock_agent_response: _agent_responses updated: {self._agent_responses}")
         return self
 
     def _get_agent_info(self, agent_name):
         agent_info: AgentInfo = self.agent_info_dict.get(agent_name)
         if agent_info is None:
             raise ValueError(f"Agent '{agent_name}' not found in agent_info_dict.")
-        print(f"Found agent_info: {agent_info}  for agent_name: {agent_name}")
+        logger.debug(f"_get_agent_info: Found agent_info: {agent_info}  for agent_name: {agent_name}")
         return agent_info
 
     def _create_agent_patcher(self, module_path, method, response_state):
@@ -105,49 +95,49 @@ class FixtureLibrary:
             return patch(patch_path, return_value=response_state)
 
     def __enter__(self):
-        print("__enter__ called. Starting all patchers.")
+        logger.debug("__enter__: called. Starting all patchers.")
         self._started_patches = self._start_all_patchers()
-        print(f"_started_patches: {self._started_patches}")
+        logger.debug(f"__enter__: _started_patches: {self._started_patches}")
         return self
 
     def _start_all_patchers(self):
         return [patcher.start() for patcher, _, _ in self._patchers]
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        print("__exit__ called. Stopping all patchers.")
+        logger.debug("__exit__: called. Stopping all patchers.")
         self._stop_all_patchers
-        print("All patchers stopped.")
+        logger.debug("__exit__: All patchers stopped.")
 
     def _stop_all_patchers(self):
         for patcher, _, _ in self._patchers:
             patcher.stop()
 
     def run(self, test_func):
-        print(f"run called with test_func={test_func}")
+        logger.debug(f"run: called with test_func={test_func}")
         with self:
             result = test_func(self._input_state)
-        print(f"run result: {result}")
+        logger.debug(f"run: result: {result}")
         return result
 
     def invoke_graph(self, graph):
-        print(f"invoke_graph called with graph={graph}")
-        print(f"Using _input_state: {self._input_state}")
-        print("Type of input_state:", type(self._input_state))
-        print("Type of graph:", type(graph))
+        logger.debug(f"invoke_graph: called with graph={graph}")
+        logger.debug(f"invoke_graph: Using _input_state: {self._input_state}")
+        logger.debug(f"invoke_graph: Type of input_state: {type(self._input_state)}")
+        logger.debug(f"invoke_graph: Type of graph: {type(graph)}")
         with self:
             result = graph.invoke(self._input_state)
-        print(f"invoke_graph result: {result}")
+        logger.debug(f"invoke_graph: result: {result}")
         self.results.append(result)
         return self
 
     async def ainvoke_graph(self, graph):
-        print(f"ainvoke_graph called with graph={graph}")
-        print(f"Using _input_state: {self._input_state}")
-        print("Type of input_state:", type(self._input_state))
-        print("Type of graph:", type(graph))
+        logger.debug(f"ainvoke_graph: called with graph={graph}")
+        logger.debug(f"ainvoke_graph: Using _input_state: {self._input_state}")
+        logger.debug(f"ainvoke_graph: Type of input_state: {type(self._input_state)}")
+        logger.debug(f"ainvoke_graph: Type of graph: {type(graph)}")
         with self:
             result = await graph.ainvoke(self._input_state)
-        print(f"ainvoke_graph result: {result}")
+        logger.debug(f"ainvoke_graph: result: {result}")
         self.results.append(result)
         return self
 
@@ -184,25 +174,25 @@ class FixtureLibrary:
         If input_args is provided, only counts calls with matching args.
         Returns True if assertion passes, else raises AssertionError.
         """
-        print(f"was_agent_method_called called with agent_name={agent_name}, method={method}, expected_count={expected_count}, input_args={input_args}")
-        print("The self._started_patches are:", self._started_patches)
+        logger.debug(f"was_agent_method_called: called with agent_name={agent_name}, method={method}, expected_count={expected_count}, input_args={input_args}")
+        logger.debug(f"was_agent_method_called: The self._started_patches are: {self._started_patches}")
         idx = self._get_patch_index_by_agent(agent_name, method)
         if idx is None:
             raise ValueError(f"No patch found for agent '{agent_name}' and method '{method}'")
         if not hasattr(self, '_started_patches'):
             raise RuntimeError("Patches have not been started. Use within a context manager.")
         mock_obj = self._started_patches[idx]
-        print(f"The mock_obj for agent '{agent_name}' and method '{method}' is:", mock_obj)
+        logger.debug(f"was_agent_method_called: The mock_obj for agent '{agent_name}' and method '{method}' is: {mock_obj}")
         # If input_args is None, count all calls
         if input_args is None:
             call_count = mock_obj.call_count
         else:
             # Filter calls by input_args
-            print(f"Counting calls with specific input_args: {input_args} and agent_name: {agent_name}, method: {method}")
+            logger.debug(f"was_agent_method_called: Counting calls with specific input_args: {input_args} and agent_name: {agent_name}, method: {method}")
             call_count = 0
             for call in getattr(mock_obj, 'call_args_list', []):
                 args, kwargs = call
-                print(f"The current call has args: {args}, kwargs: {kwargs}")
+                logger.debug(f"was_agent_method_called: The current call has args: {args}, kwargs: {kwargs}")
                 if(args and len(args) == 1 and args[0] == input_args):
                     call_count += 1
         assert call_count == expected_count, (

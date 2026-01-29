@@ -7,7 +7,7 @@ from langchain_core.messages import BaseMessage
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from fastapi import Body
-import requests
+import httpx
 
 
 class AgentState(TypedDict):
@@ -28,7 +28,7 @@ def call_api1(state):
     params = {"input": "hello"}
     print("[DEBUG] Calling API1 with URL:", url, "and params:", params)
     print("Value of url and params:", url, params)
-    response = requests.get(url, params=params)
+    response = httpx.post(url, params=params)
     print("[DEBUG] Getting AP1 response json:", response.json())
     state["messages"].append(response.json())
     print("[DEBUG] State in AP1:", state)
@@ -97,11 +97,3 @@ def build_orchestrator_graph(builder_object):
 
 
 orchestrator_graph = build_orchestrator_graph(builder)
-
-app = FastAPI(title="Master Orchestrator")
-add_routes(app, orchestrator_graph, path="/orchestrate")
-
-if __name__ == "__main__":
-    import uvicorn
-
-    uvicorn.run(app, host="0.0.0.0", port=8000)
