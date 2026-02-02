@@ -4,7 +4,7 @@ import importlib
 import inspect
 from langserve import RemoteRunnable
 from langchain_core.runnables import Runnable, RunnableLambda
-from agent_utils.models.agent_info import AgentInfo
+from agent_test.agent_utils.models.agent_info import AgentInfo
 
 # List of supported runnable types
 RUNNABLE_TYPES = [RemoteRunnable, Runnable, RunnableLambda]
@@ -27,10 +27,11 @@ def find_all_remoterunnables(package_name):
                         agent_type=type(obj).__name__,
                         agent_module_path=modname
                     )
-                    print(f"Found RemoteRunnable: {name} in module: {modname} with info: {info}")
+                    # print(f"Found RemoteRunnable: {name} in module: {modname} with info: {info}")
                     remoterunnables[name] = info
         except Exception:
             pass
+    print(f"find_all_remoterunnables: Found remoterunnables: {remoterunnables}")
     return remoterunnables
 
 def find_async_nodes_in_graph(graph):
@@ -39,4 +40,5 @@ def find_async_nodes_in_graph(graph):
     for node_name, node_func in getattr(graph, 'nodes', {}).items():
         if inspect.iscoroutinefunction(node_func):
             async_nodes.append(node_name)
+    print(f"find_async_nodes_in_graph: Found async nodes: {async_nodes}")
     return async_nodes

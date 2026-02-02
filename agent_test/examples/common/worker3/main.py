@@ -7,7 +7,7 @@ import uvicorn
 AGENT_ID = "3"
 PORT = 8003
 
-app = FastAPI(title="Worker Agent 3")
+app = FastAPI(title="Worker Agent {AGENT_ID}")
 
 def process_logic(state: dict):
     """Specific logic for agent_3 node."""

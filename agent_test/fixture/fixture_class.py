@@ -4,7 +4,7 @@ from agent_test.agent_utils.models.api_mock_type import APIMockType
 from agent_test.agent_utils.models.global_metadata import GlobalMetadata
 from agent_test.common.agent_test_logger import AgentTestLogger
 from unittest.mock import AsyncMock, Mock, patch
-from agent_utils.remoterunnable_utils import find_all_remoterunnables
+from agent_test.agent_utils.remoterunnable_utils import find_all_remoterunnables
 from agent_test.agent_utils.models.agent_info import AgentInfo
 
 logger = AgentTestLogger.get_logger()
@@ -73,15 +73,15 @@ class FixtureLibrary:
             patcher = self._create_agent_patcher(module_path, method, response_state)
             self._patchers.append((patcher, agent_name, method))
         self._agent_responses.append((agent_name, response_state))
-        logger.debug(f"mock_agent_response: _patchers updated: {self._patchers}")
-        logger.debug(f"mock_agent_response: _agent_responses updated: {self._agent_responses}")
+        # logger.debug(f"mock_agent_response: _patchers updated: {self._patchers}")
+        # logger.debug(f"mock_agent_response: _agent_responses updated: {self._agent_responses}")
         return self
 
     def _get_agent_info(self, agent_name):
         agent_info: AgentInfo = self.agent_info_dict.get(agent_name)
         if agent_info is None:
             raise ValueError(f"Agent '{agent_name}' not found in agent_info_dict.")
-        logger.debug(f"_get_agent_info: Found agent_info: {agent_info}  for agent_name: {agent_name}")
+        # logger.debug(f"_get_agent_info: Found agent_info: {agent_info}  for agent_name: {agent_name}")
         return agent_info
 
     def _create_agent_patcher(self, module_path, method, response_state):
@@ -95,49 +95,60 @@ class FixtureLibrary:
             return patch(patch_path, return_value=response_state)
 
     def __enter__(self):
-        logger.debug("__enter__: called. Starting all patchers.")
+        # logger.debug("__enter__: called. Starting all patchers.")
         self._started_patches = self._start_all_patchers()
-        logger.debug(f"__enter__: _started_patches: {self._started_patches}")
+        # logger.debug(f"__enter__: _started_patches: {self._started_patches}")
         return self
 
     def _start_all_patchers(self):
         return [patcher.start() for patcher, _, _ in self._patchers]
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        logger.debug("__exit__: called. Stopping all patchers.")
-        self._stop_all_patchers
-        logger.debug("__exit__: All patchers stopped.")
+        # logger.debug("__exit__: called. Stopping all patchers.")
+        self._stop_all_patchers()
+        # logger.debug("__exit__: All patchers stopped.")
 
     def _stop_all_patchers(self):
         for patcher, _, _ in self._patchers:
             patcher.stop()
 
     def run(self, test_func):
-        logger.debug(f"run: called with test_func={test_func}")
+        # logger.debug(f"run: called with test_func={test_func}")
         with self:
             result = test_func(self._input_state)
-        logger.debug(f"run: result: {result}")
+        # logger.debug(f"run: result: {result}")
         return result
 
+    def invoke_function(self, func):
+        # logger.debug(f"invoke_function: called with func={func}")
+        # logger.debug(f"invoke_function: Using _input_state: {self._input_state}")
+        # logger.debug(f"invoke_function: Type of input_state: {type(self._input_state)}")
+        # logger.debug(f"invoke_function: Type of func: {type(func)}")
+        with self:
+            result = func(self._input_state)
+        # logger.debug(f"invoke_function: result: {result}")
+        self.results.append(result)
+        return self
+
     def invoke_graph(self, graph):
-        logger.debug(f"invoke_graph: called with graph={graph}")
-        logger.debug(f"invoke_graph: Using _input_state: {self._input_state}")
-        logger.debug(f"invoke_graph: Type of input_state: {type(self._input_state)}")
-        logger.debug(f"invoke_graph: Type of graph: {type(graph)}")
+        # logger.debug(f"invoke_graph: called with graph={graph}")
+        # logger.debug(f"invoke_graph: Using _input_state: {self._input_state}")
+        # logger.debug(f"invoke_graph: Type of input_state: {type(self._input_state)}")
+        # logger.debug(f"invoke_graph: Type of graph: {type(graph)}")
         with self:
             result = graph.invoke(self._input_state)
-        logger.debug(f"invoke_graph: result: {result}")
+        # logger.debug(f"invoke_graph: result: {result}")
         self.results.append(result)
         return self
 
     async def ainvoke_graph(self, graph):
-        logger.debug(f"ainvoke_graph: called with graph={graph}")
-        logger.debug(f"ainvoke_graph: Using _input_state: {self._input_state}")
-        logger.debug(f"ainvoke_graph: Type of input_state: {type(self._input_state)}")
-        logger.debug(f"ainvoke_graph: Type of graph: {type(graph)}")
+        # logger.debug(f"ainvoke_graph: called with graph={graph}")
+        # logger.debug(f"ainvoke_graph: Using _input_state: {self._input_state}")
+        # logger.debug(f"ainvoke_graph: Type of input_state: {type(self._input_state)}")
+        # logger.debug(f"ainvoke_graph: Type of graph: {type(graph)}")
         with self:
             result = await graph.ainvoke(self._input_state)
-        logger.debug(f"ainvoke_graph: result: {result}")
+        # logger.debug(f"ainvoke_graph: result: {result}")
         self.results.append(result)
         return self
 
@@ -174,25 +185,26 @@ class FixtureLibrary:
         If input_args is provided, only counts calls with matching args.
         Returns True if assertion passes, else raises AssertionError.
         """
-        logger.debug(f"was_agent_method_called: called with agent_name={agent_name}, method={method}, expected_count={expected_count}, input_args={input_args}")
-        logger.debug(f"was_agent_method_called: The self._started_patches are: {self._started_patches}")
+        # logger.debug(f"was_agent_method_called: called with agent_name={agent_name}, method={method}, expected_count={expected_count}, input_args={input_args}")
+        # logger.debug(f"was_agent_method_called: The self._started_patches are: {self._started_patches}")
         idx = self._get_patch_index_by_agent(agent_name, method)
         if idx is None:
             raise ValueError(f"No patch found for agent '{agent_name}' and method '{method}'")
         if not hasattr(self, '_started_patches'):
             raise RuntimeError("Patches have not been started. Use within a context manager.")
         mock_obj = self._started_patches[idx]
-        logger.debug(f"was_agent_method_called: The mock_obj for agent '{agent_name}' and method '{method}' is: {mock_obj}")
+        # logger.debug(f"was_agent_method_called: The mock_obj for agent '{agent_name}' and method '{method}' is: {mock_obj}")
         # If input_args is None, count all calls
         if input_args is None:
             call_count = mock_obj.call_count
         else:
             # Filter calls by input_args
-            logger.debug(f"was_agent_method_called: Counting calls with specific input_args: {input_args} and agent_name: {agent_name}, method: {method}")
+            # logger.debug(f"was_agent_method_called: Counting calls with specific input_args: {input_args} and agent_name: {agent_name}, method: {method}")
             call_count = 0
             for call in getattr(mock_obj, 'call_args_list', []):
                 args, kwargs = call
-                logger.debug(f"was_agent_method_called: The current call has args: {args}, kwargs: {kwargs}")
+                # logger.debug(f"was_agent_method_called: The current call has args: {args}, kwargs: {kwargs}")
+                print(f"[DEBUG] Checking call args for agent '{agent_name}' method '{method}': {args} against input_args: {input_args}")
                 if(args and len(args) == 1 and args[0] == input_args):
                     call_count += 1
         assert call_count == expected_count, (

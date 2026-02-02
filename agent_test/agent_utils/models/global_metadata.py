@@ -14,7 +14,7 @@ class GlobalMetadata:
         """
         if not cls._api_patcher_registry:
             cls._api_patcher_registry = cls._build_api_patcher_registry()
-        print(f"GlobalMetadata: identify_patcher_type called with api_type={api_type} and the registry={cls._api_patcher_registry} ")
+        # print(f"GlobalMetadata: identify_patcher_type called with api_type={api_type} and the registry={cls._api_patcher_registry} ")
         return cls._api_patcher_registry.get(api_type, None)
     
     def _build_api_patcher_registry():
@@ -33,14 +33,14 @@ class GlobalMetadata:
                 except Exception as e:
                     print(f"GlobalMetadata: Failed to import {module_name}: {e}")
 
-        print("GlobalMetadata: Building API patcher registry...")
-        print("GlobalMetadata: Found subclasses of BaseAPIMock:", BaseAPIMock.__subclasses__())
+        # print("GlobalMetadata: Building API patcher registry...")
+        # print("GlobalMetadata: Found subclasses of BaseAPIMock:", BaseAPIMock.__subclasses__())
         registry = {}
         for cls in BaseAPIMock.__subclasses__():
-            print(f"GlobalMetadata: Registering API patcher class {cls} ")
+            # print(f"GlobalMetadata: Registering API patcher class {cls} ")
             instance = cls()
             api_type = instance.get_api_type()
-            print(f"GlobalMetadata: Identified api_type={api_type} for class {cls} ")
+            # print(f"GlobalMetadata: Identified api_type={api_type} for class {cls} ")
             if api_type:
                 registry[api_type] = cls
         return registry
