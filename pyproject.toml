@@ -3,7 +3,8 @@ name = "agents-multiproject"
 version = "0.1.0"
 description = "Multi-agent orchestration and testing framework with LangGraph, CrewAI, and FastAPI."
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }
+    { name = "Anant Gupta", email = "anantguptadbl@gmail.com" },
+    { name = "Ritesh Jena", email = "riteshjena@gmail.com" }
 ]
 readme = "README.md"
 
