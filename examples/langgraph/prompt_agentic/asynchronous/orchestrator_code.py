@@ -4,6 +4,7 @@ from langserve import RemoteRunnable
 from langgraph.graph import StateGraph, START, END
 import openai
 import requests
+import inspect
 
 
 class AgentState(TypedDict):
@@ -120,7 +121,7 @@ def run_llm_orchestrator(initial_state):
         agent_func = AGENT_FUNCTIONS.get(current_agent)
         if agent_func is None:
             break
-        if current_agent == "a2":
+        if inspect.iscoroutinefunction(agent_func):
             import asyncio
             result = asyncio.run(agent_func(state))
             print(f"[DEBUG] After {current_agent} (async), result: {result}")
