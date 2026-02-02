@@ -11,16 +11,19 @@ logger = AgentTestLogger.get_logger()
 
 class FixtureLibrary:
 
-    def __init__(self):
-        
+    def __init__(self, root_path: str = None):
+        if root_path is None:
+            # Use current package path if available, else fallback to 'orchestrator'
+            root_path = __package__ if __package__ else "orchestrator"
         self._input_state = None
         self._api_mocks = []
         self._agent_invocations = []
         self._agent_responses = []
         self._patchers = []
         self.results = []
+        self._root_path = root_path
         # Load all agent info dict at initialization
-        self.agent_info_dict = find_all_remoterunnables("orchestrator")
+        self.agent_info_dict = find_all_remoterunnables(self._root_path)
         logger.debug(f"__init__: Initialized FixtureLibrary with members: "
                  f"_input_state={self._input_state}, "
                  f"_api_mocks={self._api_mocks}, "

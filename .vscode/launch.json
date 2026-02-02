@@ -23,7 +23,7 @@
             ],
             "console": "integratedTerminal",
             "env": {
-                "PYTHONPATH": "W:/2025/Agents;W:/2025/Agents/langtest",
+                "PYTHONPATH": "W:/2025/Agents;W:/2025/Agents/agent_test",
                 "PYTHONDONTWRITEBYTECODE": "1"
             },
             "justMyCode": false,

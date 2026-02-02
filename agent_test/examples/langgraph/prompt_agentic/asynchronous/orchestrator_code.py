@@ -22,12 +22,8 @@ agent5 = RemoteRunnable("http://localhost:8003/agent5/process")
 def call_api1(state):
     url = "http://127.0.0.1:8004/api1/getdata1"
     params = {"input": "hello"}
-    # print("[DEBUG] Calling API1 with URL:", url, "and params:", params)
-    # print("Value of url and params:", url, params)
     response = requests.post(url, params=params)
-    # print("[DEBUG] Getting AP1 response json:", response.json())
     state["messages"].append(response.json())
-    # print("[DEBUG] State in AP1:", state)
     return state
 
 
@@ -40,9 +36,9 @@ def call_a1(state):
     return state
 
 
-def call_a2(state):
+async def call_a2(state):
     print("[DEBUG] In call_a2 with state:", state)
-    result = agent2.invoke(state)
+    result = await agent2.ainvoke(state)
     print("[DEBUG] After call_a2, type:", type(result), "value:", result)
     return result
 
@@ -124,17 +120,12 @@ def run_llm_orchestrator(initial_state):
         agent_func = AGENT_FUNCTIONS.get(current_agent)
         if agent_func is None:
             break
-        # Support async agent (a2)
-        # if current_agent == "a2":
-        #     import asyncio
-        #     loop = asyncio.new_event_loop()
-        #     asyncio.set_event_loop(loop)
-        #     result = loop.run_until_complete(agent_func(state))
-        #     loop.close()
-        #     # result = asyncio.run(agent_func(state))
-        #     print(f"[DEBUG] After {current_agent} (async), result: {result}")
-        # else:
-        result = agent_func(state)
+        if current_agent == "a2":
+            import asyncio
+            result = asyncio.run(agent_func(state))
+            print(f"[DEBUG] After {current_agent} (async), result: {result}")
+        else:
+            result = agent_func(state)
         results[current_agent] = result
         history.append({"agent": current_agent, "result": result})
         state = result if isinstance(result, dict) else state
