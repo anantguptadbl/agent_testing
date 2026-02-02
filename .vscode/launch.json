@@ -1,0 +1,33 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "Python: Current File (with PYTHONPATH)",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "W:/2025/Agents",
+                "PYTHONDONTWRITEBYTECODE": "1"
+            }
+        },
+        {
+            "name": "PYTHON TEST",
+            "type": "python",
+            "request": "launch",
+            "module": "uv",
+            "args": [
+                "run", "pytest", "${file}"
+            ],
+            "console": "integratedTerminal",
+            "env": {
+                "PYTHONPATH": "W:/2025/Agents;W:/2025/Agents/agent_test",
+                "PYTHONDONTWRITEBYTECODE": "1"
+            },
+            "justMyCode": false,
+            "purpose": ["debug-test"]
+        }
+    ]
+}
