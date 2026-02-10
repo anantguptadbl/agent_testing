@@ -23,6 +23,7 @@ def call_api1(state):
     url = "http://127.0.0.1:8004/api1/getdata1"
     params = {"input": "hello"}
     response = requests.post(url, params=params)
+    print("[DEBUG] In call_api1 with state: {} and type of state is ", state, type(state))
     state["messages"].append(response.json())
     return state
 

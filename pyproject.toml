@@ -1,6 +1,6 @@
 [project]
 name = "agents-multiproject"
-version = "0.1.0"
+version = "0.1.1"
 description = "Multi-agent orchestration and testing framework with LangGraph, CrewAI, and FastAPI."
 authors = [
     { name = "Anant Gupta", email = "anantguptadbl@gmail.com" },

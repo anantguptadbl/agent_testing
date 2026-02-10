@@ -88,6 +88,9 @@ Unit tests are provided in the `agent_test/test/` directory. Run all tests with:
 pytest agent_test/test
 ```
 
+## Run the uvicorn code
+
+
 ## License
 
 See LICENSE for details.
@@ -108,3 +111,6 @@ LlamaIndex (for agentic workflows)
 DSPy (for programmatic LLM pipelines)
 PromptChainer (open-source agentic framework)
 Direct function/callback-based agents
+
+#TODO 
+1) API Payload type translation from feature file
