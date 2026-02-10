@@ -1,0 +1,23 @@
+[
+  {
+    "mock_api_calls": [
+      {
+        "api_path": "orchestrator_code.requests.post",
+        "payload": {"url": "http://127.0.0.1:8004/api1/getdata2", "params": {"input": "world"}},
+        "return_value": {"content": "world"},
+        "api_type": "REQUESTS"
+      }
+    ],
+    "input_state": {"messages": [{"role": "user", "content": "world"}]},
+    "agent_responses": [
+      {"agent_name": "agent1", "response_state": {"messages": [{"role": "agent1", "content": "responseA"}]}},
+      {"agent_name": "agent2", "response_state": {"messages": [{"role": "agent2", "content": "responseB"}]}},
+      {"agent_name": "agent3", "response_state": {"messages": [{"role": "agent3", "content": "responseC"}]}}
+    ],
+    "expect_agent_invocations": [
+      {"agent_name": "agent1", "state": {"messages": [{"role": "user", "content": "world"}, {"content": "world"}]}, "agent_type": "invoke", "ntimes": 1},
+      {"agent_name": "agent2", "state": {"messages": [{"role": "agent1", "content": "responseA"}]}, "agent_type": "invoke", "ntimes": 1},
+      {"agent_name": "agent3", "state": {"messages": [{"role": "agent2", "content": "responseB"}]}, "agent_type": "invoke", "ntimes": 1}
+    ]
+  }
+]

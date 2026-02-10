@@ -1,0 +1,99 @@
+from typing import Annotated, TypedDict
+import uuid
+from langgraph.graph import StateGraph, START, END
+from langserve import RemoteRunnable, add_routes
+from fastapi import FastAPI
+from langchain_core.messages import BaseMessage
+from fastapi import Request
+from fastapi.responses import JSONResponse
+from fastapi import Body
+import httpx
+
+
+class AgentState(TypedDict):
+    messages: list[dict]
+    # messages: Annotated[list[BaseMessage], "History"]
+
+
+# Initialize connections to the 3 agents
+agent1 = RemoteRunnable("http://localhost:8001/agent1/process")
+agent2 = RemoteRunnable("http://localhost:8002/agent2/process")
+agent3 = RemoteRunnable("http://localhost:8003/agent3/process")
+agent4 = RemoteRunnable("http://localhost:8003/agent4/process")
+agent5 = RemoteRunnable("http://localhost:8003/agent5/process")
+
+
+def call_api1(state):
+    url = "http://127.0.0.1:8004/api1/getdata1"
+    params = {"input": "hello"}
+    print("[DEBUG] Calling API1 with URL:", url, "and params:", params)
+    print("Value of url and params:", url, params)
+    response = httpx.post(url, params=params)
+    print("[DEBUG] Getting AP1 response json:", response.json())
+    state["messages"].append(response.json())
+    print("[DEBUG] State in AP1:", state)
+    return state
+
+
+def call_a1(state):
+    print("[DEBUG] In call_a1 with state:", state)
+    if state["messages"][-1]["content"] == "hello":
+        result = agent1.invoke(state)
+        print("[DEBUG] After call_a1, type:", type(result), "value:", result)
+        return result
+    return state
+
+
+def call_a2(state):
+    print("[DEBUG] In call_a2 with state:", state)
+    result = agent2.invoke(state)
+    print("[DEBUG] After call_a2, type:", type(result), "value:", result)
+    return result
+
+
+def call_a3(state):
+    # Check if 'Processed by agent3' already present
+    already_processed = any(
+        msg.get("content") == "Processed by agent3" for msg in state["messages"]
+    )
+    if not already_processed:
+        result = agent3.batch(state)
+        result["messages"].append({"role": "system", "content": "Processed by agent3", "uuid": uuid.uuid4().hex})
+    print("[DEBUG] After call_a3, type:", type(result), "value:", result)
+    return result
+
+def call_a4(state):
+    result = agent4.batch(state)
+    result["messages"].append({"role": "system", "content": "Processed by agent4", "uuid": uuid.uuid4().hex})
+    print("[DEBUG] After call_a4, type:", type(result), "value:", result)
+    return result
+
+def call_a5(state):
+    result = agent5.batch(state)
+    print("[DEBUG] After call_a5, type:", type(result), "value:", result)
+    return result
+
+
+# Build Orchestration Graph
+
+builder = StateGraph(AgentState)
+builder.add_node("api1", call_api1)
+builder.add_node("a1", call_a1)
+builder.add_node("a2", call_a2)
+builder.add_node("a3", call_a3)
+
+builder.add_edge(START, "api1")
+builder.add_edge("api1", "a1")
+builder.add_edge("a1", "a2")
+builder.add_edge("a2", "a3")
+builder.add_edge("a3", END)
+
+
+def build_orchestrator_graph(builder_object):
+    """
+    Takes a builder object and returns a compiled orchestrator graph instance.
+    """
+    return builder_object.compile()
+
+
+orchestrator_graph = build_orchestrator_graph(builder)

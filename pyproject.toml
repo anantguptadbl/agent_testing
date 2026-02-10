@@ -1,0 +1,50 @@
+[project]
+name = "agents-multiproject"
+version = "0.1.1"
+description = "Multi-agent orchestration and testing framework with LangGraph, CrewAI, and FastAPI."
+authors = [
+    { name = "Anant Gupta", email = "anantguptadbl@gmail.com" },
+    { name = "Ritesh Jena", email = "riteshjena@gmail.com" }
+]
+readme = "README.md"
+
+requires-python = ">=3.13"
+
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "httpx>=0.27.0",
+    "langchain>=0.1.0",
+    "langgraph>=1.0.7",
+    "crewai",
+    "pytest",
+    "pytest-asyncio",
+    "langserve"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+
+[project.optional-dependencies]
+test = [
+    "pytest",
+    "httpx",
+    "pytest-asyncio"
+]
+langgraph = [
+    "langgraph>=1.0.7",
+    "langchain>=0.1.0",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "httpx>=0.27.0"
+]
+crewai = [
+    "crewai",
+    "fastapi>=0.110.0",
+    "uvicorn>=0.29.0",
+    "httpx>=0.27.0"
+]
+
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
