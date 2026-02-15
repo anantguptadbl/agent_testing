@@ -1,6 +1,5 @@
 # --- Dynamic scenario loader for JSON ---
 import pytest
-from unittest.mock import patch
 from agent_test.src.fixture.fixture_class import scenario_feature_loader
 from examples.langgraph.prompt_agentic.synchronous_other.orchestrator_code import AccountState, AgentState, get_response_from_llm
 
