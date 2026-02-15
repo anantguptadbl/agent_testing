@@ -1,10 +1,7 @@
 # --- Dynamic scenario loader for JSON ---
 import glob
 import pytest
-import agent_test.src.fixture.fixture_bdd  # Ensures step definitions are registered
 from agent_test.src.agent_utils.models.api_mock_type import APIMockType
-from agent_test.src.fixture.fixture_class import FixtureLibrary
-from unittest.mock import patch
 from pytest_bdd import scenarios
 from agent_test.src.fixture.fixture_class import scenario_feature_loader
 from agent_test.src.fixture.fixture_bdd import bdd_feature_loader   

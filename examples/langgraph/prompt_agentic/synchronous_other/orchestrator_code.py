@@ -1,12 +1,8 @@
-from typing import Annotated, Optional, TypedDict
+from typing import Optional
 from langserve import RemoteRunnable
-from langgraph.graph import StateGraph, START, END
 import openai
 from langchain_core.runnables import Runnable
-from langchain_core.runnables import RunnableLambda
-from langchain_core.prompt_values import PromptValue
 from pydantic import BaseModel
-from typer import prompt
 from langchain_openai import ChatOpenAI
 from langchain.tools import tool
 
@@ -164,7 +160,8 @@ def get_prompt(state: AgentState) -> str:
         The tool_calls array should contain the tools you want to call with their parameters. The final_answer field should contain the answer you want to provide to the user after calling the tools. If you need to call a tool, include it in the tool_calls array with the correct parameters. If you have all the information you need, set tool_calls to an empty array and provide your answer in final_answer.
         The current state: {AgentState.attributes_without_user_prompt(state)}
         If you have all the responses you will end the execution and not call any other agent. Set the "status" field in the response to "end"
-        If you have already triggered a tool once, do not trigger it again in subsequent invocations. You should analyse the current state and check what is the most appropriate tool to call next until you have all the information needed to answer the user's query. Always use the tools to fetch information, do not answer directly from your own knowledge.
+        This is a very stringent rule: If you have already triggered a tool once, do not trigger it again in subsequent invocations. 
+        You should analyse the current state and check what is the most appropriate tool to call next until you have all the information needed to answer the user's query. Always use the tools to fetch information, do not answer directly from your own knowledge.
 
         You will not be getting any input from the user. Assume and move ahead with the information. Make use of tools to arrive at decisions and make use of that information in the agent state in subsequent invocations
         """

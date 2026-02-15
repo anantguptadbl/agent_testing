@@ -21,7 +21,8 @@ dependencies = [
     "pytest-bdd",
     "pytest-asyncio",
     "langserve",
-    "langchain_openai"
+    "langchain_openai",
+    "mcp"
 ]
 
 [tool.setuptools.packages.find]
