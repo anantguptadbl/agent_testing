@@ -18,6 +18,7 @@ dependencies = [
     "langgraph>=1.0.7",
     "crewai",
     "pytest",
+    "pytest-bdd",
     "pytest-asyncio",
     "langserve",
     "langchain_openai"
