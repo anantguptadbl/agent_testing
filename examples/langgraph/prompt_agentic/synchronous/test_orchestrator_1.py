@@ -1,6 +1,7 @@
 # --- Dynamic scenario loader for JSON ---
 import glob
 import pytest
+import agent_test.src.fixture.fixture_bdd  # Ensures step definitions are registered
 from agent_test.src.agent_utils.models.api_mock_type import APIMockType
 from agent_test.src.fixture.fixture_class import FixtureLibrary
 from unittest.mock import patch
@@ -9,7 +10,6 @@ from agent_test.src.fixture.fixture_class import scenario_feature_loader
 from agent_test.src.fixture.fixture_bdd import bdd_feature_loader   
 from agent_test.src.fixture.data_loader.feature_loader import file_feature_loader
 from examples.langgraph.prompt_agentic.synchronous.orchestrator_code import run_llm_orchestrator
-
 
 @pytest.mark.parametrize("scenario_feature_loader", ["examples.langgraph.prompt_agentic.synchronous"], indirect=True)
 def test_orchestrator_chain(scenario_feature_loader):
@@ -58,10 +58,15 @@ def test_orchestrator_chain(scenario_feature_loader):
 
 
 # BDD test function (pytest-bdd will discover and run this via the feature file)
-scenarios("orchestrator_chain.feature")
-@pytest.mark.usefixtures("bdd_feature_loader")
+
+
+@pytest.mark.parametrize(
+    "feature_file,root_dir",
+    [("orchestrator_chain.feature", "examples/langgraph/prompt_agentic/synchronous")],
+)
 @pytest.mark.parametrize("bdd_feature_loader", ["examples.langgraph.prompt_agentic.synchronous"], indirect=True)
-def test_orchestrator_chain_bdd(bdd_feature_loader):
+def test_orchestrator_chain_bdd(bdd_feature_loader, feature_file, root_dir):
+    scenarios(feature_file)
     pass
 
 

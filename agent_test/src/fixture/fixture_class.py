@@ -5,13 +5,14 @@ from agent_test.src.agent_utils.models.api_mock_type import APIMockType
 from agent_test.src.agent_utils.models.global_metadata import GlobalMetadata
 from agent_test.src.common.agent_test_logger import AgentTestLogger
 from unittest.mock import AsyncMock, Mock, patch
-from agent_test.src.agent_utils.remoterunnable_utils import find_all_remoterunnables
+from agent_test.src.agent_utils.remoterunnable_utils import find_all_remoterunnables, find_all_tools
 from agent_test.src.agent_utils.models.agent_info import AgentInfo
 
 logger = AgentTestLogger.get_logger()
 
-class FixtureLibrary:
 
+
+class FixtureLibrary:
     def __init__(self, root_path: str = None):
         if root_path is None:
             # Use current package path if available, else fallback to 'orchestrator'
@@ -25,18 +26,33 @@ class FixtureLibrary:
         self._root_path = root_path
         # Load all agent info dict at initialization
         self.agent_info_dict = find_all_remoterunnables(self._root_path)
+        self.tool_dict = find_all_tools(self._root_path)
         logger.debug(f"__init__: Initialized FixtureLibrary with members: "
                  f"_input_state={self._input_state}, "
                  f"_api_mocks={self._api_mocks}, "
                  f"_agent_invocations={self._agent_invocations}, "
                  f"_agent_responses={self._agent_responses}, "
                  f"_patchers={self._patchers}, "
-                 f"agent_info_dict keys={list(self.agent_info_dict.keys())}")
+                 f"agent_info_dict keys={list(self.agent_info_dict.keys())}, "
+                 f"tool_dict keys={list(self.tool_dict.keys())}")
 
     def when_input_state(self, state):
         logger.debug(f"when_input_state: called with state={state}")
         self._input_state = state
         logger.debug(f"when_input_state: _input_state set to {self._input_state}")
+        return self
+    
+    def mock_tool_response(self, tool_name, response_state):
+        logger.debug(
+            f"mock_tool_response: called with tool_name={tool_name}, response_state={response_state}"
+        )
+        # Use tool_dict to infer the patch path for the tool
+        tool_info = self._get_tool_info(tool_name)
+        module_path = tool_info.agent_path
+        for method in ["invoke", "ainvoke", "batch"]:
+            patcher = self._create_agent_patcher(module_path, method, response_state)
+            self._patchers.append((patcher, tool_name, method))
+        logger.debug(f"mock_tool_response: _patchers updated: {self._patchers}")
         return self
 
     def mock_api_call(self, api_path, payload, return_value, api_type:APIMockType=APIMockType.REQUESTS):
@@ -85,6 +101,13 @@ class FixtureLibrary:
             raise ValueError(f"Agent '{agent_name}' not found in agent_info_dict.")
         logger.debug(f"_get_agent_info: Found agent_info: {agent_info}  for agent_name: {agent_name}")
         return agent_info
+    
+    def _get_tool_info(self, tool_name):
+        tool_info: AgentInfo = self.tool_dict.get(tool_name)
+        if tool_info is None:
+            raise ValueError(f"Tool '{tool_name}' not found in tool_dict.")
+        logger.debug(f"_get_tool_info: Found tool_info: {tool_info}  for tool_name: {tool_name}")
+        return tool_info
 
     def _create_agent_patcher(self, module_path, method, response_state):
         patch_path = f"{module_path}.{method}"
