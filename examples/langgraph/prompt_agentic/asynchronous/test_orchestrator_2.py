@@ -2,7 +2,6 @@ import os
 import pytest
 from agent_test.src.agent_utils.models.api_mock_type import APIMockType
 from agent_test.src.fixture.fixture_class import FixtureLibrary
-from unittest.mock import patch
 from examples.langgraph.prompt_agentic.asynchronous.orchestrator_code import run_llm_orchestrator
 
 

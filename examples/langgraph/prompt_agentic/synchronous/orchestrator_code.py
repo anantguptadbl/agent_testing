@@ -1,7 +1,6 @@
-from typing import Annotated, TypedDict
+from typing import TypedDict
 import uuid
 from langserve import RemoteRunnable
-from langgraph.graph import StateGraph, START, END
 import openai
 import requests
 
@@ -23,6 +22,7 @@ def call_api1(state):
     url = "http://127.0.0.1:8004/api1/getdata1"
     params = {"input": "hello"}
     response = requests.post(url, params=params)
+    print("[DEBUG] In call_api1 with state: {} and type of state is ", state, type(state))
     state["messages"].append(response.json())
     return state
 
