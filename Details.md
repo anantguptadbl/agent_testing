@@ -163,21 +163,74 @@ def run_llm_orchestrator(initial_state):
 This orchestrator demonstrates how agentic workflows can be coordinated, with each agent invoked in sequence and the next step determined by an LLM. This code is used as the basis for the fixture, BDD, and JSON scenario tests described above.
 ```
 
-### 1. Fixture-Based Testing
+### 1. Scenario Based Testing
 
 Use Python fixtures to set up agent state, mock API calls, and validate agent/tool invocations. This approach is powerful for granular, reusable test setups.
 
 ```python
-@pytest.mark.parametrize("scenario_feature_loader", ["examples.langgraph.prompt_agentic.synchronous"], indirect=True)
 def test_orchestrator_chain(scenario_feature_loader):
     (
-        scenario_feature_loader.mock_api_call(...)
+    scenario_feature_loader.mock_api_call(
+            api_path="orchestrator_code.requests.post",
+            payload=
+            {
+                "url": "http://127.0.0.1:8004/api1/getdata1",
+                "params": {"input": "hello"},
+            },
+            return_value={"content": "hello"},
+            api_type=APIMockType.REQUESTS
+        )
         .when_input_state({"messages": [{"role": "user", "content": "hello"}]})
-        .mock_agent_response("agent1", {...})
+        .mock_agent_response(
+            "agent1", {"messages": [{"role": "agent1", "content": "response1"}]}
+        )
+        .mock_agent_response(
+            "agent2", {"messages": [{"role": "agent2", "content": "response2"}]}
+        )
+        .mock_agent_response(
+            "agent3", {"messages": [{"role": "agent3", "content": "response3"}]}
+        )
         .invoke_function(run_llm_orchestrator)
-        .expect_agent_invocation("agent1", {...}, "invoke", ntimes=1)
+        .expect_agent_invocation(
+            "agent1",
+           {'messages': [{'role': 'user', 'content': 'hello'}, {'content': 'hello'}]},
+            "invoke",
+            ntimes=1,
+        )
+        .expect_agent_invocation(
+            "agent2",
+            {'messages': [{'role': 'agent1', 'content': 'response1'}]},
+            "invoke",
+            ntimes=1,
+        )
+        .expect_agent_invocation(
+            "agent3",
+            {'messages': [{'role': 'agent2', 'content': 'response2'}]},
+            "invoke",
+            ntimes=1,
+        )
     )
+    # Add more assertions as needed
 ```
+
+#### Detailed Explanation of Fixture-Based Testing Steps
+
+- **when_input_state**: This fixture method sets up the initial state for the orchestrator or agent. It simulates the starting context, such as the initial messages or environment the agent will see. For example, `.when_input_state({"messages": [{"role": "user", "content": "hello"}]})` ensures the orchestrator starts with a user message "hello" in its state. This is crucial for reproducible, scenario-driven tests.
+
+- **mock_api_call**: This fixture mocks external API calls made by the orchestrator or agents. It intercepts calls (e.g., HTTP requests) and returns predefined responses, allowing you to simulate API behavior without making real network calls. The parameters include:
+  - `api_path`: The import path to the function being mocked (e.g., `orchestrator_code.requests.post`).
+  - `payload`: The expected arguments for the API call (e.g., URL and params).
+  - `return_value`: The mock response to return (e.g., `{ "content": "hello" }`).
+  - `api_type`: The type of API being mocked (e.g., `APIMockType.REQUESTS`).
+  This enables deterministic, isolated tests regardless of external service availability.
+
+- **mock_agent_response**: This fixture simulates the response of a specific agent when invoked by the orchestrator. For example, `.mock_agent_response("agent1", {"messages": [{"role": "agent1", "content": "response1"}]})` ensures that when the orchestrator calls agent1, it receives the specified response. This is essential for testing orchestrator logic without running real agent servers.
+
+- **invoke_function**: This step triggers the actual function under test—in this case, the orchestrator logic (e.g., `run_llm_orchestrator`). It runs the orchestrator with the prepared state and mocks, simulating a real workflow execution.
+
+- **expect_agent_invocation**: This assertion checks that a particular agent was called with the expected input and the correct method (e.g., `invoke`), and optionally how many times (`ntimes`). For example, `.expect_agent_invocation("agent1", {...}, "invoke", ntimes=1)` asserts that agent1 was invoked once with the specified state. This validates that the orchestrator is coordinating agents as intended.
+
+These fixtures and assertions together enable expressive, scenario-driven, and fully controlled tests for complex agentic workflows.
 
 ---
 
@@ -244,6 +297,35 @@ Let’s break down the structure of a real-world agentic test suite, using `lang
 - **JSON Tests:** Parameterize and automate scenario coverage.
 
 This modular approach means you can test complex, event-driven agent flows with concise, readable code.
+
+
+### More Examples
+
+#### Agent-Testing Example Gallery
+
+Explore a variety of agentic testing examples in the [agent_testing repository](https://github.com/anantguptadbl/agent_testing/tree/main/examples/langgraph):
+
+1. **LangGraph Prompt Agentic Asynchronous**
+   - [View Example](https://github.com/anantguptadbl/agent_testing/tree/main/examples/langgraph/prompt_agentic/asynchronous)
+   - Demonstrates asynchronous orchestration of agents using LangGraph. Includes tests for event-driven flows where agent responses and state updates occur out of order, simulating real-world async interactions.
+
+2. **LangGraph Prompt Agentic Synchronous**
+   - [View Example](https://github.com/anantguptadbl/agent_testing/tree/main/examples/langgraph/prompt_agentic/synchronous)
+   - Shows synchronous agent orchestration, where agents are invoked in a strict sequence. Features fixture, BDD, and JSON scenario tests for validating stepwise agent flows.
+
+3. **LangGraph Prompt Agentic Tool-Based Invocation**
+   - [View Example](https://github.com/anantguptadbl/agent_testing/tree/main/examples/langgraph/prompt_agentic/synchronous_other)
+   - Focuses on tool-based agent invocation, testing how orchestrators bind and trigger tools dynamically. Useful for scenarios where agents leverage external tools or APIs.
+
+4. **LangGraph Simple Graph Asynchronous**
+   - [View Example](https://github.com/anantguptadbl/agent_testing/tree/main/examples/langgraph/simple_graph/asynchronous)
+   - Illustrates a minimal asynchronous agent graph. Tests cover parallel agent execution and state merging, ideal for distributed or concurrent agentic workflows.
+
+5. **LangGraph Simple Graph Synchronous**
+   - [View Example](https://github.com/anantguptadbl/agent_testing/tree/main/examples/langgraph/simple_graph/synchronous)
+   - Provides a basic synchronous agent graph. Includes tests for linear agent chains and deterministic state transitions, suitable for simple orchestrations.
+
+Each example contains orchestrator code, test cases, and scenario files to help you understand and adapt agentic testing patterns for your own projects.
 
 
 ## Future Work
