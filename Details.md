@@ -44,6 +44,125 @@ Agentic systems are fundamentally event-driven:
 
 The `agent-testing` library is designed for agentic frameworks. It provides three expressive ways to write tests:
 
+### Orchestrator Code
+
+Below is a simplified version of the orchestrator code used for agentic workflow testing (from `examples/langgraph/prompt_agentic/synchronous/orchestrator_code.py`).
+
+```python
+from typing import TypedDict
+import uuid
+from langserve import RemoteRunnable
+import openai
+import requests
+
+class AgentState(TypedDict):
+    messages: list[dict]
+
+# Initialize connections to the agents
+agent1 = RemoteRunnable("http://localhost:8001/agent1/process")
+agent2 = RemoteRunnable("http://localhost:8002/agent2/process")
+agent3 = RemoteRunnable("http://localhost:8003/agent3/process")
+agent4 = RemoteRunnable("http://localhost:8003/agent4/process")
+agent5 = RemoteRunnable("http://localhost:8003/agent5/process")
+
+def call_api1(state):
+    url = "http://127.0.0.1:8004/api1/getdata1"
+    params = {"input": "hello"}
+    response = requests.post(url, params=params)
+    state["messages"].append(response.json())
+    return state
+
+def call_a1(state):
+    if state["messages"][-1]["content"] == "hello":
+        result = agent1.invoke(state)
+        return result
+    return state
+
+def call_a2(state):
+    result = agent2.invoke(state)
+    return result
+
+def call_a3(state):
+    already_processed = any(
+        msg.get("content") == "Processed by agent3" for msg in state["messages"]
+    )
+    if not already_processed:
+        result = agent3.invoke(state)
+        result["messages"].append({"role": "system", "content": "Processed by agent3", "uuid": uuid.uuid4().hex})
+    return result
+
+def call_a4(state):
+    result = agent4.batch(state)
+    result["messages"].append({"role": "system", "content": "Processed by agent4", "uuid": uuid.uuid4().hex})
+    return result
+
+def call_a5(state):
+    result = agent5.batch(state)
+    return result
+
+openai.api_key = ""  # Set your OpenAI API key
+
+AGENT_FUNCTIONS = {
+    "api1": call_api1,
+    "a1": call_a1,
+    "a2": call_a2,
+    "a3": call_a3,
+    "a4": call_a4,
+    "a5": call_a5,
+}
+
+def query_llm_for_next_agent(state, history):
+    """
+    Query OpenAI LLM to decide the next agent and action.
+    """
+    prompt = f"""
+    You are an orchestrator for agentic workflows. Generate the next_agent name.
+    The order of agent execution is api1 -> a1 -> a2 -> a3 -> end
+    If the history shows only user and api1, output a1
+    If a1 has completed, output a2
+    If a1 and a2 have completed, output a3
+    If a1, a2, a3 have completed, output end
+    Current state: {state}
+    History: {history}
+    Respond with a JSON object: {{'next_agent': 'agent_name'}}. If finished, set next_agent to 'end'.
+    """
+    from openai import OpenAI
+    client = OpenAI(api_key=openai.api_key)
+    response = client.chat.completions.create(
+        model="gpt-4.1-nano",
+        messages=[{"role": "system", "content": "You are an agentic orchestrator."},
+                  {"role": "user", "content": prompt}],
+        temperature=0
+    )
+    import json
+    content = response.choices[0].message.content
+    try:
+        result = json.loads(content)
+    except Exception:
+        result = {'next_agent': 'end'}
+    return result
+
+def run_llm_orchestrator(initial_state):
+    state = initial_state
+    history = []
+    results = {}
+    current_agent = "api1"
+    while current_agent != "end":
+        agent_func = AGENT_FUNCTIONS.get(current_agent)
+        if agent_func is None:
+            break
+        result = agent_func(state)
+        results[current_agent] = result
+        history.append({"agent": current_agent, "result": result})
+        state = result if isinstance(result, dict) else state
+        llm_decision = query_llm_for_next_agent(state, history)
+        current_agent = llm_decision.get('next_agent', 'end')
+    return results
+```
+```
+This orchestrator demonstrates how agentic workflows can be coordinated, with each agent invoked in sequence and the next step determined by an LLM. This code is used as the basis for the fixture, BDD, and JSON scenario tests described above.
+```
+
 ### 1. Fixture-Based Testing
 
 Use Python fixtures to set up agent state, mock API calls, and validate agent/tool invocations. This approach is powerful for granular, reusable test setups.
@@ -126,7 +245,6 @@ Let’s break down the structure of a real-world agentic test suite, using `lang
 
 This modular approach means you can test complex, event-driven agent flows with concise, readable code.
 
----
 
 ## Future Work
 
