@@ -44,6 +44,31 @@ Agentic systems are fundamentally event-driven:
 
 The `agent-testing` library is designed for agentic frameworks. It provides three expressive ways to write tests:
 
+### How to install
+To install the latest release from PyPI:
+
+```bash
+pip install agentic-testing
+```
+
+To install with optional dependencies for LangGraph or CrewAI support:
+
+```bash
+pip install agentic-testing[langgraph]
+# or
+pip install agentic-testing[crewai]
+```
+
+To install directly from the repository (latest main branch):
+
+```bash
+pip install git+https://github.com/anantguptadbl/agent_testing.git
+```
+
+> **Note:** Requires Python 3.13 or newer.
+
+---
+
 ### Orchestrator Code
 
 Below is a simplified version of the orchestrator code used for agentic workflow testing (from `examples/langgraph/prompt_agentic/synchronous/orchestrator_code.py`).
@@ -299,7 +324,9 @@ Let’s break down the structure of a real-world agentic test suite, using `lang
 This modular approach means you can test complex, event-driven agent flows with concise, readable code.
 
 
-### More Examples
+
+
+## More Examples
 
 #### Agent-Testing Example Gallery
 
