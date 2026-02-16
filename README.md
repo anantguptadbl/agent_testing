@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="agentic_testing.png" alt="agent-testing logo" width="180"/>
+</p>
+
 # Bridging the Gap: Effortless Testing for Agentic Frameworks with `agent-testing`
 
 ## Introduction
